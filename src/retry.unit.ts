@@ -1,11 +1,11 @@
 /**
  * @synet/retry - Conscious Retry Unit for Resilient Operations
  * 
- * SYNET Unit Architecture v1.0.6 Implementation
+ * Unit Architecture v1.0.6 Implementation
  * 
  * ONE METHOD TO RULE THEM ALL: retry(operation, options?)
  * 
- * 80/20 Philosophy:
+ * Tracer-bullet:
  * - Exponential backoff with jitter (convention over configuration)
  * - Conscious failure learning and pattern recognition
  * - Composable with any async operation
@@ -269,10 +269,10 @@ Example:
     };
   }
 
-  // Pure function hearts (Doctrine #8: PURE FUNCTION HEARTS)
+
   private isRetryableError(error: Error): boolean {
     const message = error.message.toLowerCase();
-    const code = (error as any).code;
+    const code = (error as NodeJS.ErrnoException).code;
     
     // Check explicit error codes
     if (code && this.props.retryableErrors.has(code)) {
@@ -282,7 +282,8 @@ Example:
     // Check message patterns for retryable errors
     const retryablePatterns = [
       'network', 'timeout', 'connection', 'reset', 'refused', 
-      'unreachable', 'temporary', 'rate limit', '5', '429', '502', '503', '504'
+      'unreachable', 'temporarily', 'temporary', 'rate limit', '5', '429', '502', '503', '504',
+      'unavailable', 'service'
     ];
     
     return retryablePatterns.some(pattern => message.includes(pattern));
@@ -290,7 +291,7 @@ Example:
 
   private calculateDelay(attempt: number, config: RetryConfig): number {
     // Exponential backoff: baseDelay * (multiplier ^ (attempt - 1))
-    let delay = this.props.baseDelay * Math.pow(this.props.backoffMultiplier, attempt - 1);
+    let delay = this.props.baseDelay * this.props.backoffMultiplier ** (attempt - 1);
     
     // Cap at maxDelay
     delay = Math.min(delay, this.props.maxDelay);
