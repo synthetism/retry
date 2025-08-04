@@ -1,6 +1,6 @@
 {
   "name": "@synet/retry",
-  "version": "0.0.1-dev.0",
+  "version": "0.0.1-dev.1",
   "description": "Retry Unit for Resilient Operations",
   "type": "module",
   "main": "dist/index.js",

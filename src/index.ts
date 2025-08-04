@@ -11,5 +11,6 @@ export { Retry } from './retry.unit.js';
 export type {
   RetryConfig,
   RetryProps,
-  RetryResult
+  RetryResult,
+  RetryStats
 } from './retry.unit.js';

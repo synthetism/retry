@@ -11,8 +11,8 @@ describe('Retry Unit - 80/20 Resilience Tests', () => {
     
     const stats = retry.getStats();
     expect(stats.totalOperations).toBe(0);
-    expect(stats.configuration.maxAttempts).toBe(3);
-    expect(stats.configuration.baseDelay).toBe(100);
+    expect(stats.config.maxAttempts).toBe(3);
+    expect(stats.config.baseDelay).toBe(100);
   });
 
   it('should retry failing operations with exponential backoff', async () => {

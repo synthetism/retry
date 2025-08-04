@@ -1,6 +1,6 @@
 import { Retry } from '../src/index.js';
 
-// 🎯 Retry Unit Demo - Intelligent Resilience in Action
+//  Retry Unit Demo - Intelligent Resilience in Action
 
 interface MockApiResponse {
   data: string;
@@ -13,7 +13,7 @@ class MockFlakeyAPI {
   private readonly failureRate: number;
   private readonly serviceName: string;
 
-  constructor(serviceName: string, failureRate: number = 0.7) {
+  constructor(serviceName: string, failureRate = 0.7) {
     this.serviceName = serviceName;
     this.failureRate = failureRate; // 70% failure rate by default
   }

@@ -41,7 +41,7 @@ export interface RetryProps extends UnitProps {
   jitter: boolean;
   backoffMultiplier: number;
   retryableErrors: Set<string>;
-  stateUnit: State;
+  state: State;
 }
 
 /**
@@ -56,11 +56,26 @@ export interface RetryResult<T> {
   readonly timestamp: Date;
 }
 
+export interface RetryStats {
+  totalOperations: number;
+  totalRetries: number;
+  successfulOperations: number;
+  failedOperations: number;
+  averageAttempts: number;
+  successRate: number; // Percentage of successful operations
+  config: {
+    maxAttempts: number;
+    baseDelay: number;
+    maxDelay: number;
+    jitter: boolean;
+    backoffMultiplier: number;
+    retryableErrors: string[];
+  }
+}
+
 /**
  * Retry Unit Implementation
  * 
- * Doctrine #1: ZERO DEPENDENCY (only native setTimeout/Promise)
- * Doctrine #17: VALUE OBJECT FOUNDATION (immutable with identity and capabilities)
  */
 export class Retry extends Unit<RetryProps> {
   
@@ -93,7 +108,7 @@ export class Retry extends Unit<RetryProps> {
       jitter: config.jitter ?? true,
       backoffMultiplier: config.backoffMultiplier ?? 2,
       retryableErrors: new Set(config.retryableErrors ?? ['ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'EHOSTUNREACH']),
-      stateUnit
+      state:stateUnit
     };
 
     return new Retry(props);
@@ -106,18 +121,18 @@ export class Retry extends Unit<RetryProps> {
     const config = this.mergeOptions(customOptions);
     
     // Update stats
-    const totalOperations = this.props.stateUnit.get<number>('totalOperations') ?? 0;
-    this.props.stateUnit.set('totalOperations', totalOperations + 1);
+    const totalOperations = this.props.state.get<number>('totalOperations') ?? 0;
+    this.props.state.set('totalOperations', totalOperations + 1);
 
     for (let attempt = 1; attempt <= config.maxAttempts; attempt++) {
       try {
         const result = await operation();
         
         // SUCCESS - Update stats and return
-        const successfulOperations = this.props.stateUnit.get<number>('successfulOperations') ?? 0;
-        const totalRetries = this.props.stateUnit.get<number>('totalRetries') ?? 0;
-        this.props.stateUnit.set('successfulOperations', successfulOperations + 1);
-        this.props.stateUnit.set('totalRetries', totalRetries + (attempt - 1));
+        const successfulOperations = this.props.state.get<number>('successfulOperations') ?? 0;
+        const totalRetries = this.props.state.get<number>('totalRetries') ?? 0;
+        this.props.state.set('successfulOperations', successfulOperations + 1);
+        this.props.state.set('totalRetries', totalRetries + (attempt - 1));
         
         return {
           result,
@@ -135,10 +150,10 @@ export class Retry extends Unit<RetryProps> {
         // Check if this is the last attempt
         if (attempt === config.maxAttempts) {
           // FINAL FAILURE - Update stats and throw
-          const failedOperations = this.props.stateUnit.get<number>('failedOperations') ?? 0;
-          const totalRetries = this.props.stateUnit.get<number>('totalRetries') ?? 0;
-          this.props.stateUnit.set('failedOperations', failedOperations + 1);
-          this.props.stateUnit.set('totalRetries', totalRetries + (attempt - 1));
+          const failedOperations = this.props.state.get<number>('failedOperations') ?? 0;
+          const totalRetries = this.props.state.get<number>('totalRetries') ?? 0;
+          this.props.state.set('failedOperations', failedOperations + 1);
+          this.props.state.set('totalRetries', totalRetries + (attempt - 1));
           
           throw new Error(`[${this.dna.id}] Operation failed after ${attempt} attempts. Last error: ${err.message}. All errors: ${errors.map(e => e.message).join(', ')}`);
         }
@@ -146,10 +161,10 @@ export class Retry extends Unit<RetryProps> {
         // Check if error is retryable
         if (!this.isRetryableError(err)) {
           // NON-RETRYABLE ERROR - Update stats and throw immediately
-          const failedOperations = this.props.stateUnit.get<number>('failedOperations') ?? 0;
-          const totalRetries = this.props.stateUnit.get<number>('totalRetries') ?? 0;
-          this.props.stateUnit.set('failedOperations', failedOperations + 1);
-          this.props.stateUnit.set('totalRetries', totalRetries + (attempt - 1));
+          const failedOperations = this.props.state.get<number>('failedOperations') ?? 0;
+          const totalRetries = this.props.state.get<number>('totalRetries') ?? 0;
+          this.props.state.set('failedOperations', failedOperations + 1);
+          this.props.state.set('totalRetries', totalRetries + (attempt - 1));
           
           throw new Error(`[${this.dna.id}] Non-retryable error: ${err.message}`);
         }
@@ -164,6 +179,24 @@ export class Retry extends Unit<RetryProps> {
     throw new Error(`[${this.dna.id}] Unexpected retry loop completion`);
   }
 
+    getStats(): RetryStats {
+    return { 
+      successfulOperations: this.props.state.get<number>('successfulOperations') ?? 0,
+      failedOperations: this.props.state.get<number>('failedOperations') ?? 0,
+      totalRetries: this.props.state.get<number>('totalRetries') ?? 0,
+      averageAttempts: this.props.state.get<number>('averageAttempts') ?? 0,
+      totalOperations: this.props.state.get<number>('totalOperations') ?? 0,
+      successRate: (this.props.state.get<number>('successfulOperations') || 0) / (this.props.state.get<number>('totalOperations') || 1),
+      config: {
+        maxAttempts: this.props.maxAttempts,
+        baseDelay: this.props.baseDelay,
+        maxDelay: this.props.maxDelay,
+        jitter: this.props.jitter,
+        backoffMultiplier: this.props.backoffMultiplier,
+        retryableErrors: Array.from(this.props.retryableErrors)
+      }
+    };
+  }
 
   help(): string {
     const stats = this.getStats();
@@ -233,30 +266,7 @@ Example:
     return `Retry[${stats.totalOperations}ops, ${stats.successfulOperations}✓] - Conscious Resilience - v${this.dna.version}`;
   }
 
-  // Statistics and monitoring
-  getStats() {
-    const totalOperations = this.props.stateUnit.get<number>('totalOperations') ?? 0;
-    const totalRetries = this.props.stateUnit.get<number>('totalRetries') ?? 0;
-    const successfulOperations = this.props.stateUnit.get<number>('successfulOperations') ?? 0;
-    const failedOperations = this.props.stateUnit.get<number>('failedOperations') ?? 0;
-    const averageAttempts = totalOperations > 0 ? (totalOperations + totalRetries) / totalOperations : 0;
-    
-    return {
-      totalOperations,
-      totalRetries,
-      successfulOperations,
-      failedOperations,
-      successRate: totalOperations > 0 ? (successfulOperations / totalOperations) : 0,
-      averageAttempts,
-      configuration: {
-        maxAttempts: this.props.maxAttempts,
-        baseDelay: this.props.baseDelay,
-        maxDelay: this.props.maxDelay,
-        jitter: this.props.jitter,
-        backoffMultiplier: this.props.backoffMultiplier
-      }
-    };
-  }
+
 
   toJson() {
     const stats = this.getStats();
