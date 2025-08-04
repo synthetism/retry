@@ -5,7 +5,7 @@
  * 
  * ONE METHOD TO RULE THEM ALL: retry(operation, options?)
  * 
- * Tracer-bullet:
+ * Retry Unit provides:
  * - Exponential backoff with jitter (convention over configuration)
  * - Conscious failure learning and pattern recognition
  * - Composable with any async operation
@@ -208,7 +208,7 @@ Current Stats: ${stats.totalOperations} operations, ${stats.totalRetries} retrie
 Success Rate: ${((stats.successfulOperations / stats.totalOperations) * 100).toFixed(1)}%
 Average Attempts: ${stats.averageAttempts.toFixed(1)}
 
-🎯 ONE METHOD TO RULE THEM ALL:
+ONE METHOD TO RULE THEM ALL:
 • retry(operation, options?) - Conscious resilience for any async operation
 
 Default Configuration:
@@ -218,14 +218,14 @@ Default Configuration:
 • backoffMultiplier: ${this.props.backoffMultiplier}x (exponential growth)
 • jitter: ${this.props.jitter} (adds randomness to prevent thundering herd)
 
-🧠 Conscious Features:
+Conscious Features:
 • Exponential backoff with jitter by default
 • Retryable error detection (network, timeout, etc.)
 • Non-retryable error immediate failure
 • Complete operation statistics and learning
 • Zero configuration required
 
-🔧 Management:
+Management:
 • getStats() - View retry statistics and patterns
 • isRetryableError(error) - Check if error should trigger retry
 • toJson() - Serialize for persistence/logging
@@ -263,7 +263,7 @@ Example:
 
   whoami(): string {
     const stats = this.getStats();
-    return `Retry[${stats.totalOperations}ops, ${stats.successfulOperations}✓] - Conscious Resilience - v${this.dna.version}`;
+    return `Retry [${stats.totalOperations} ops, ${stats.successfulOperations} ✓] - Conscious Resilience - v${this.dna.version}`;
   }
 
 
