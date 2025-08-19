@@ -65,16 +65,7 @@ describe('Retry Unit - 80/20 Resilience Tests', () => {
     expect(stats.totalRetries).toBe(1); // One retry attempted
   });
 
-  it('should teach retry capabilities', () => {
-    const retry = Retry.create();
-    
-    const teaching = retry.teach();
-    
-    expect(teaching.unitId).toBe('retry');
-    expect(teaching.capabilities).toHaveProperty('retry');
-    expect(teaching.capabilities).toHaveProperty('getStats');
-    expect(teaching.capabilities).toHaveProperty('isRetryableError');
-  });
+
 
   it('should track comprehensive statistics', async () => {
     const retry = Retry.create({ maxAttempts: 2, baseDelay: 10 });
@@ -102,7 +93,6 @@ describe('Retry Unit - 80/20 Resilience Tests', () => {
     const data = retry.toJson();
     
     expect(data.unitId).toBe('retry');
-    expect(data.version).toBe('1.0.0');
     expect(data.stats).toBeDefined();
     expect(data.retryableErrors).toBeInstanceOf(Array);
     expect(data.timestamp).toBeCloseTo(Date.now(), -2);

@@ -15,8 +15,16 @@
  * @author SYNET ALPHA
  */
 
-import { Unit, type UnitProps, createUnitSchema } from '@synet/unit';
-import type { TeachingContract } from '@synet/unit';
+import { 
+  Unit, 
+  type UnitProps, 
+  createUnitSchema, 
+  type TeachingContract,
+  type UnitCore,
+  Capabilities,
+  Schema,
+  Validator
+} from '@synet/unit';
 import { State } from '@synet/state';
 
 /**
@@ -83,6 +91,25 @@ export class Retry extends Unit<RetryProps> {
   protected constructor(props: RetryProps) {
     super(props);
   }
+
+  // v1.1.0 Consciousness Trinity (empty for composition units)
+  protected build(): UnitCore {
+    const capabilities = Capabilities.create(this.dna.id, {});
+    const schema = Schema.create(this.dna.id, {});
+    const validator = Validator.create({
+      unitId: this.dna.id,
+      capabilities,
+      schema,
+      strictMode: false
+    });
+
+    return { capabilities, schema, validator };
+  }
+
+  // Consciousness Trinity Access
+  capabilities(): Capabilities { return this._unit.capabilities; }
+  schema(): Schema { return this._unit.schema; }
+  validator(): Validator { return this._unit.validator; }
 
    static create(config: RetryConfig = {}): Retry {
     // Create state unit for statistics
@@ -252,12 +279,9 @@ Example:
  teach(): TeachingContract {
     return {
       unitId: this.dna.id,
-      capabilities: {
-        retry: ((...args: unknown[]) => this.retry(args[0] as () => Promise<unknown>, args[1] as Partial<RetryConfig>)) as (...args: unknown[]) => unknown,
-        getStats: () => this.getStats.bind(this),
-        isRetryableError: ((...args: unknown[]) => this.isRetryableError(args[0] as Error)) as (...args: unknown[]) => unknown,
-        toJson: () => this.toJson.bind(this)
-      }
+      capabilities: this._unit.capabilities,
+      schema: this._unit.schema,
+      validator: this._unit.validator
     };
   }
 
